@@ -22,6 +22,10 @@ def eq_thresh(a, b, thresh=10 ** -6):
     return abs(a - b) < thresh
 
 
+def dist(x, y, a, b):
+    return sqrt((x - a) ** 2 + (y - b) ** 2)
+
+
 def xy_to_x0y0(x, y, r):
     if (x ** 2 + y ** 2) > 4 * r ** 2:
         print("(x,y) out of range")
@@ -82,10 +86,6 @@ def thetaphi_to_xy(theta, phi, r):
     return x, y
 
 
-def dist(x, y, a, b):
-    return sqrt((x - a) ** 2 + (y - b) ** 2)
-
-
 def has_alternative(theta, phi, theta_max, phi_max):
     if 0 <= theta <= theta_max - 2 * math.pi:
         return True
@@ -102,44 +102,32 @@ def alt_phi(x, y, x_0, y_0, r):
     y_n = y / xy_norm
     dot = x_0 * x_n + y_0 * y_n
     x_1 = x_0 - 2 * dot * x_n
-    y_1 = y_0 -2 * dot * y_n
+    y_1 = y_0 - 2 * dot * y_n
     theta = np.arccos(x_1 / r)
-    return theta, x_1, y_1
+    return theta, -x_1, -y_1
 
 
 def alt_theta(theta):
     return theta + 2 * math.pi
 
 
-def test_alts(x, y, x_0, y_0, r):
-    phi_n, x_n, y_n = alt_phi(x, y, x_0, y_0, r)
-    plt.plot(x_n, y_n, 'o')
-    if eq_thresh(dist(x_n, y_n, 0, 0), r) and eq_thresh(dist(x, y, x_n, y_n), r):
-        print('test_alts passes\n')
-
-
-def test_xy_to_thetaphi(x, y, r, fig):
-    # print(x_0, y_0)
-    # print(dist(x_0, y_0, 0, 0))
-    # print(dist(x_0, y_0, x, y))
-    # print(degrees(theta), degrees(phi))
-    pass
-
-
-
-def test_thetaphi_to_xy(x, y, r, fig):
+def test_and_plot(x, y, r):
+    x_0, y_0 = xy_to_x0y0(x, y, r)
+    # check to make sure (x_0,y_0) is the equidistant from (0,0) and (x,y)
+    if eq_thresh(dist(x_0, y_0, 0, 0), r) and eq_thresh(dist(x_0, y_0, x, y), r):
+        print('(x,y) to (x_0,y_0) passed')
+    else:
+        print('(x,y) to (x_0,y_0) failed')
+        exit(1)
     theta, phi = xy_to_thetaphi(x, y, r)
     x_out, y_out = thetaphi_to_xy(theta, phi, r)
+    # check to make sure (x_out,y_out) is equal to (x,y)
     if eq_thresh(x_out, x) and eq_thresh(y_out, y):
-        print('(theta, phi) to (x,y) passes\n')
-    # testing converting theta and phi back to x and y
-    # x_1 = x_0 + np.cos(phi) * x_0
-    # y_1 = y_0 + np.cos(phi) * y_0
-    # plt.plot(x_1, y_1, 'o')
-
-def test_all(x, y, r):
-    x_0, y_0 = xy_to_x0y0(x, y, r)
-    theta, phi = xy_to_thetaphi(x, y, r)
+        print('(theta,phi) to (x,y) passed')
+    else:
+        print('(theta,phi) to (x,y) failed')
+        exit(1)
+    # plot arms
     plt.title('(x,y)=(' + str(x) + ',' + str(y) + '), r=' + str(r))
     plt.plot(0, 0, 'o')
     plt.plot(x, y, 'o')
@@ -150,7 +138,19 @@ def test_all(x, y, r):
     plt.ylim(-2 * r, 2 * r)
     plt.grid(linestyle='--')
     plt.gca().set_aspect('equal')
-    test_alts(x, y, x_0, y_0, r)
+    # check if alternative configuration exists (for now set to True)
+    if True:
+        # compute alternative angle
+        theta_n, x_n, y_n = alt_phi(x, y, x_0, y_0, r)
+        # check that (x_n,y_n) is equidistant from (0,0) and (x,y)
+        if eq_thresh(dist(x_n, y_n, 0, 0), r) and eq_thresh(dist(x_n, y_n, x, y), r):
+            print('alternative config passed')
+        else:
+            print('alternative config failed')
+            exit(1)
+        plt.plot(x_n, y_n, 'o')
+        plt.plot((0, x_n), (0, y_n), '--')
+        plt.plot((x_n, x), (y_n, y), '--')
     plt.show()
 
 
@@ -174,12 +174,12 @@ class Positioner:
 
 
 if __name__ == "__main__":
-    test_all(4, 4, 3)
+    test_and_plot(4, 4, 3)
     # # test quadrant 1
-    # test(-0.8, 0.4, 3)
+    # test_and_plot(-0.8, 0.4, 3)
     # # test quadrant 2
-    # test(-0.4, -0.8, 3)
+    # test_and_plot(-0.4, -0.8, 3)
     # # test quadrant 3
-    # test(0.8, -0.4, 3)
+    # test_and_plot(0.8, -0.4, 3)
     # # test quadrant 4
-    # test(0.4, 0.8, 3)
+    # test_and_plot(0.4, 0.8, 3)
