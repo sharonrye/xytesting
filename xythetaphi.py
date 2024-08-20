@@ -3,16 +3,6 @@ from math import sqrt, degrees
 import numpy as np
 import matplotlib.pyplot as plt
 
-# TODO: generalize code to assume arms are NOT the same length
-# TODO: add Positioner class, should contain:
-# center of positioner
-# theta range approx 390
-# phi range approx 190
-# theta_max is hard stop
-# phi_max is hard stop
-# current position
-# counterclockwise is positive
-
 
 # global threshold for checking equality
 equality_threshold = 10 ** -6
@@ -26,10 +16,12 @@ def dist(x, y, a, b):
     return sqrt((x - a) ** 2 + (y - b) ** 2)
 
 
+# given (x,y) coordinates and arm lengths r_theta and r_phi, computes and returns coordinates (x_0,y_0) the location
+# of the phi motor (end of arm of length r_theta)
 def xy_to_x0y0(x, y, r_theta, r_phi):
     if (x ** 2 + y ** 2) > (r_theta + r_phi) ** 2:
         print("(x,y) out of range")
-        exit(-1)
+        exit(1)
     # if (x,y) is on the edge of the circle, then the 2 arms are parallel
     if eq_thresh(dist(x, y, 0, 0), r_theta + r_phi, equality_threshold):
         theta = np.arccos(x / (r_theta + r_phi))
@@ -37,7 +29,6 @@ def xy_to_x0y0(x, y, r_theta, r_phi):
 
     mag_xy = dist(x, y, 0, 0)
     # law of cosines
-    temp = (mag_xy ** 2 + r_theta ** 2 - r_phi ** 2) / 2 * mag_xy * r_theta
     sigma = np.arccos((mag_xy ** 2 + r_theta ** 2 - r_phi ** 2) / (2 * mag_xy * r_theta))
     d = r_theta * np.cos(sigma)
     k = sqrt(r_theta ** 2 - d ** 2)
@@ -48,21 +39,17 @@ def xy_to_x0y0(x, y, r_theta, r_phi):
     return x_0, y_0
 
 
+# given coordinates (x,y) and arm lengths r_theta and r_phi, computes and returns (theta,phi)
 def xy_to_thetaphi(x, y, r_theta, r_phi):
+    # compute location of phi motor (x_0,y_0)
     x_0, y_0 = xy_to_x0y0(x, y, r_theta, r_phi)
     theta = np.arccos(x_0 / r_theta)
+    # compute projection of phi arm onto theta arm
     dot = ((x - x_0) * x_0 + (y - y_0) * y_0)
     phi = np.arccos(dot / (r_phi * r_theta))
-    # quadrant 1
-    if x_0 >= 0 and y_0 >= 0:
-        # theta remains unchanged
-        pass
-    # quadrant 2
-    elif x_0 <= 0 and y_0 >= 0:
-        # theta remains unchanged
-        pass
+    # adjust theta to get signs to match up
     # quadrant 3
-    elif x_0 <= 0 and y_0 <= 0:
+    if x_0 <= 0 and y_0 <= 0:
         theta = 2 * math.pi - theta
         pass
     # quadrant 4
@@ -73,14 +60,17 @@ def xy_to_thetaphi(x, y, r_theta, r_phi):
     return theta, phi
 
 
-# TODO make cases for different quadrants
+# given (theta,phi) and arm lengths r_theta and r_phi, computes coordinates (x,y) location of the end of the phi arm
 def thetaphi_to_xy(theta, phi, r_theta, r_phi):
+    # compute coordinates of (x_0,y_0) the end of the theta arm
     x_0 = np.cos(theta) * r_theta
     y_0 = np.sin(theta) * r_theta
     e = np.cos(phi) * r_phi
     f = np.sin(phi) * r_phi
+    # add e to the vector in the direction of (x_0,y_0)
     x_1 = x_0 + e * x_0 / r_theta
     y_1 = y_0 + e * y_0 / r_theta
+    # add f to the vector in the direction perpendicular to (x_1,y_1)
     d = dist(-1 * y_1, x_1, 0, 0)
     x = f * -1 * y_1 / d + x_1
     y = f * x_1 / d + y_1
@@ -95,25 +85,30 @@ def has_alternative(theta, phi, theta_max, phi_max):
     return False
 
 
-# TODO: make cases for different quadrants
+# given coordinates (x,y) and coordinates (x_0,y_0) of the location of the phi motor (end of arm of length r_theta) and
+# arm lengths r_theta and r_phi, computes and returns alternative (theta,phi) and alternative coordinates (x_1,y_1)
+# of the location of the phi motor
 def alt_phi(x, y, x_0, y_0, r_theta, r_phi):
     # n is normalized vector (x, y)
     xy_norm = dist(x, y, 0, 0)
     # (x_n, y_n) is the unit vector in the direction of (x,y)
     x_n = x / xy_norm
     y_n = y / xy_norm
+    # reflect across vector in the direction of (x_n,y_n)
     dot = x_0 * x_n + y_0 * y_n
     x_1 = x_0 - 2 * dot * x_n
     y_1 = y_0 - 2 * dot * y_n
     theta = np.arccos(x_1 / r_theta)
+    # returns -x_1 and -y_1 to get signs to match up
     return theta, -r_phi, -x_1, -y_1
 
 
+# theta and theta + 2 * pi represent the same angle
 def alt_theta(theta):
     return theta + 2 * math.pi
 
 
-def test_and_plot(x, y, r_theta, r_phi):
+def test_and_plot(x, y, r_theta, r_phi, theta_max=2 * math.pi, phi_max=math.pi):
     r = max(r_theta, r_phi)
     x_0, y_0 = xy_to_x0y0(x, y, r_theta, r_phi)
     # check to make sure (x_0,y_0) r_theta away from (0,0) and r_phi away from (x,y)
@@ -135,8 +130,8 @@ def test_and_plot(x, y, r_theta, r_phi):
     plt.plot(0, 0, 'o')
     plt.plot(x, y, 'o')
     plt.plot(x_0, y_0, 'o')
-    plt.plot((0, x_0), (0, y_0))
-    plt.plot((x_0, x), (y_0, y))
+    plt.plot((0, x_0), (0, y_0), label='theta arm')
+    plt.plot((x_0, x), (y_0, y), label='phi arm')
     plt.xlim(-2 * r, 2 * r)
     plt.ylim(-2 * r, 2 * r)
     plt.grid(linestyle='--')
@@ -151,13 +146,23 @@ def test_and_plot(x, y, r_theta, r_phi):
         else:
             print('alternative config failed')
             exit(1)
+        # plots alternative configuration with dotted lines
         plt.plot(x_n, y_n, 'o')
         plt.plot((0, x_n), (0, y_n), '--')
         plt.plot((x_n, x), (y_n, y), '--')
+    plt.legend(loc='best')
     plt.show()
 
 
 # TODO: add state and logging for Positioner class
+# TODO: add Positioner class, should contain:
+# center of positioner
+# theta range approx 390
+# phi range approx 190
+# theta_max is hard stop
+# phi_max is hard stop
+# current position
+# counterclockwise is positive
 class Positioner:
     def __init__(self, center, arm_length, theta_max, phi_max, current_x, current_y, current_theta, current_phi):
         self.arm_length = arm_length
@@ -178,12 +183,13 @@ class Positioner:
 
 
 if __name__ == "__main__":
-    test_and_plot(4, 4, 3, 5)
-    # # test quadrant 1
-    # test_and_plot(-0.8, 0.4, 3)
-    # # test quadrant 2
-    # test_and_plot(-0.4, -0.8, 3)
-    # # test quadrant 3
-    # test_and_plot(0.8, -0.4, 3)
-    # # test quadrant 4
-    # test_and_plot(0.4, 0.8, 3)
+    # test quadrant 1
+    test_and_plot(-4, 4, 3.5, 5)
+    # test quadrant 2
+    test_and_plot(-3, -2, 2, 2.8)
+    # test quadrant 3
+    test_and_plot(3, -3, 4, 4)
+    # test quadrant 4
+    test_and_plot(4, 4, 3.5, 3)
+    # test arms parallel
+    test_and_plot(0, 3, 2, 1)
