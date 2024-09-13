@@ -16,14 +16,14 @@ def dist(x, y, a, b):
     return sqrt((x - a) ** 2 + (y - b) ** 2)
 
 
-# given (x,y) coordinates and arm lengths r_theta and r_phi, computes and returns coordinates (x_0,y_0) the location
-# of the phi motor (end of arm of length r_theta)
 def xy_to_x0y0(x, y, r_theta, r_phi):
+    """Given (x,y) coordinates and arm lengths r_theta and r_phi, compute and return coordinates (x_0,y_0) the location
+    of the phi motor (end of arm of length r_theta)."""
     if (x ** 2 + y ** 2) > (r_theta + r_phi) ** 2:
         print("(x,y) out of range")
         exit(1)
     # if (x,y) is on the edge of the circle, then the 2 arms are parallel
-    if eq_thresh(dist(x, y, 0, 0), r_theta + r_phi, equality_threshold):
+    if eq_thresh(dist(x, y, 0, 0), r_theta + r_phi):
         theta = np.arccos(x / (r_theta + r_phi))
         return r_theta * np.cos(theta), r_theta * np.sin(theta)
 
@@ -39,8 +39,8 @@ def xy_to_x0y0(x, y, r_theta, r_phi):
     return x_0, y_0
 
 
-# given coordinates (x,y) and arm lengths r_theta and r_phi, computes and returns (theta,phi)
 def xy_to_thetaphi(x, y, r_theta, r_phi):
+    """Given coordinates (x,y) and arm lengths r_theta and r_phi, compute and return (theta,phi)."""
     # compute location of phi motor (x_0,y_0)
     x_0, y_0 = xy_to_x0y0(x, y, r_theta, r_phi)
     theta = np.arccos(x_0 / r_theta)
@@ -60,8 +60,9 @@ def xy_to_thetaphi(x, y, r_theta, r_phi):
     return theta, phi
 
 
-# given (theta,phi) and arm lengths r_theta and r_phi, computes coordinates (x,y) location of the end of the phi arm
 def thetaphi_to_xy(theta, phi, r_theta, r_phi):
+    """Given (theta,phi) and arm lengths r_theta and r_phi, compute coordinates (x,y) location of the end of the phi
+    arm."""
     # compute coordinates of (x_0,y_0) the end of the theta arm
     x_0 = np.cos(theta) * r_theta
     y_0 = np.sin(theta) * r_theta
@@ -85,10 +86,10 @@ def has_alternative(theta, phi, theta_max, phi_max):
     return False
 
 
-# given coordinates (x,y) and coordinates (x_0,y_0) of the location of the phi motor (end of arm of length r_theta) and
-# arm lengths r_theta and r_phi, computes and returns alternative (theta,phi) and alternative coordinates (x_1,y_1)
-# of the location of the phi motor
 def alt_phi(x, y, x_0, y_0, r_theta, r_phi):
+    """Given coordinates (x,y) and coordinates (x_0,y_0) of the location of the phi motor (end of arm of length
+    r_theta) and arm lengths r_theta and r_phi, compute and return alternative (theta,phi) and alternative
+    coordinates (x_1,y_1) of the location of the phi motor."""
     # n is normalized vector (x, y)
     xy_norm = dist(x, y, 0, 0)
     # (x_n, y_n) is the unit vector in the direction of (x,y)
