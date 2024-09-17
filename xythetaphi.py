@@ -3,6 +3,7 @@ from math import sqrt, degrees
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""Provides coordinate transforms between (theta, phi) and (x,y) cartesian coordinates."""
 
 # global threshold for checking equality
 equality_threshold = 10 ** -6
@@ -127,7 +128,7 @@ def test_and_plot(x, y, r_theta, r_phi, theta_max=2 * math.pi, phi_max=math.pi):
         print('(theta,phi) to (x,y) failed')
         exit(1)
     # plot arms
-    plt.title('(x,y)=(' + str(x) + ',' + str(y) + '), r_theta=' + str(r_theta) + ', r_phi=' + str(r_phi))
+    plt.title(f"(x,y)=({x},{y}), r_theta={r_theta}, r_phi={r_phi}")
     plt.plot(0, 0, 'o')
     plt.plot(x, y, 'o')
     plt.plot(x_0, y_0, 'o')
