@@ -10,7 +10,7 @@ Contains Positioner class that tracks state of an individual positioner
 
 ## grid.py
 
-Contains code to generate calibrate target points
+Contains code to generate calibration target points
 
 ## test_gen.py
 
